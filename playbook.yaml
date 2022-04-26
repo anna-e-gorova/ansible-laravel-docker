@@ -1,0 +1,17 @@
+#################
+# laravel-docker-compose PLAYBOOK #
+#################
+---
+- hosts: "all"
+  become: true
+  vars_files:
+    - vars/default.yaml
+
+  roles:
+  - docker-compose # все таски файла main.yml по пути %директория ansible%/roles/docker-compose/tasks/
+  - laravel # все таски файла main.yml по пути %директория ansible%/roles/laravel/tasks/
+  #tasks:
+  #- name: "Reload nginx" # этот таск не относится к ролям напрямую, поэтому вынесен после выполнения всех ролей
+  #  ansible.builtin.service:
+  #    name: "nginx"
+  #    state: "reloaded"

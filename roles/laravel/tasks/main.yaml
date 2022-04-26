@@ -1,0 +1,54 @@
+- name: Check exists dir    
+  stat: path=/home/{{ admin_user }}/travellist-demo
+  register: p
+
+- name: Download testapp
+  ansible.builtin.unarchive:
+    src: "{{ testapp_url }}"
+    dest: /home/{{ admin_user }}
+    remote_src: yes
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+  register: download
+  when: not p.stat.exists
+
+- name: Find dir
+  find:
+    paths: /home/{{ admin_user }}
+    file_type: directory
+    patterns: 'travellist*'
+  register: dir
+  when: download.changed and not p.stat.exists
+
+- name: Rename dir to travellist-demo
+  command: mv {{ item.path }} /home/{{ admin_user }}/travellist-demo
+  with_items:
+    - "{{ dir.files }}"
+  when: download.changed and not p.stat.exists
+
+- name: Copy conf files
+  synchronize:
+    src: ./files/
+    dest: /home/{{ admin_user }}/travellist-demo/
+    rsync_opts:
+       - "--chown={{ admin_user }}:{{ admin_user }}"
+  when: download.changed and not p.stat.exists
+
+- name: Docker compose up daemon
+  command: docker-compose up -d --build
+  args:
+    chdir: /home/{{ admin_user }}/travellist-demo
+  when: download.changed and not p.stat.exists
+
+- name: Install composer
+  command: docker-compose exec app composer update
+  args:
+    chdir: /home/{{ admin_user }}/travellist-demo
+  when: download.changed and not p.stat.exists
+
+- name: Artisan key generate
+  command: docker-compose exec app php artisan key:generate
+  args:
+    chdir: /home/{{ admin_user }}/travellist-demo
+  when: download.changed and not p.stat.exists
+
